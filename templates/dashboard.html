@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SoftNet-Guard | Home Network Security Dashboard</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #161b22 0%, #1a2332 100%);
+      border-bottom: 1px solid #30363d;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #00d4aa, #0084ff);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .logo-text h1 { font-size: 1.3rem; color: #e6edf3; font-weight: 700; }
+    .logo-text p  { font-size: 0.75rem; color: #8b949e; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: #0d2818; border: 1px solid #238636;
+      color: #3fb950; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb950;
+           animation: pulse 2s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+    .scan-btn {
+      background: linear-gradient(135deg, #00d4aa, #0084ff);
+      border: none; color: white; padding: 8px 18px;
+      border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .scan-btn:hover { opacity: 0.85; }
+
+    /* ── Main Layout ── */
+    main { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+
+    /* ── Stats Cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem; margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: #58a6ff; }
+    .stat-label { font-size: 0.78rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; }
+    .stat-value { font-size: 2rem; font-weight: 700; }
+    .stat-card.blue   .stat-value { color: #58a6ff; }
+    .stat-card.green  .stat-value { color: #3fb950; }
+    .stat-card.orange .stat-value { color: #d29922; }
+    .stat-card.red    .stat-value { color: #f85149; }
+    .stat-sub { font-size: 0.75rem; color: #8b949e; }
+
+    /* ── Section Headers ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .section-header h2 { font-size: 1rem; color: #e6edf3; font-weight: 600; }
+    .badge {
+      background: #21262d; border: 1px solid #30363d;
+      color: #8b949e; font-size: 0.75rem; padding: 2px 10px; border-radius: 20px;
+    }
+
+    /* ── Tables ── */
+    .table-wrap {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #21262d; }
+    th {
+      text-align: left;
+      font-size: 0.75rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 12px 16px;
+      font-weight: 600;
+    }
+    td {
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      border-top: 1px solid #21262d;
+    }
+    tr:hover td { background: #1c2128; }
+    .mono { font-family: 'Courier New', monospace; font-size: 0.8rem; color: #79c0ff; }
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .pill-green  { background: #0d2818; color: #3fb950; border: 1px solid #238636; }
+    .pill-blue   { background: #031d40; color: #58a6ff; border: 1px solid #1f6feb; }
+    .pill-orange { background: #341a00; color: #d29922; border: 1px solid #9e6a03; }
+    .pill-red    { background: #2d0f0f; color: #f85149; border: 1px solid #b91c1c; }
+    .pill-gray   { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+
+    /* ── Two-column layout ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── Alert rows ── */
+    .alert-row-high   { border-left: 3px solid #f85149 !important; }
+    .alert-row-medium { border-left: 3px solid #d29922 !important; }
+    .alert-row-low    { border-left: 3px solid #58a6ff !important; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.75rem;
+      color: #484f58;
+      border-top: 1px solid #21262d;
+      margin-top: 1rem;
+    }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 2rem; color: #484f58; font-size: 0.85rem; }
+
+    /* ── Traffic bar ── */
+    .bar-bg { background: #21262d; border-radius: 4px; height: 6px; margin-top: 4px; }
+    .bar-fill { height: 6px; border-radius: 4px; background: linear-gradient(90deg, #00d4aa, #0084ff); }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <div class="logo-text">
+      <h1>SoftNet-Guard</h1>
+      <p>Home Wi-Fi Security Monitor</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-badge"><span class="dot"></span> Monitoring Active</div>
+    <a href="/url-checker" style="background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:0.85rem;font-weight:600">🔗 URL Checker</a>
+    <button class="scan-btn" onclick="triggerScan()">🔍 Scan Now</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Stat Cards ── -->
+  <div class="stats-grid">
+    <div class="stat-card blue">
+      <div class="stat-label">Total Devices</div>
+      <div class="stat-value">{{ stats.total_devices }}</div>
+      <div class="stat-sub">Discovered on network</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Active Now</div>
+      <div class="stat-value">{{ stats.active_devices }}</div>
+      <div class="stat-sub">Currently connected</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Open Alerts</div>
+      <div class="stat-value">{{ stats.open_alerts }}</div>
+      <div class="stat-sub">Require attention</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Packets Captured</div>
+      <div class="stat-value">{{ "{:,}".format(stats.total_packets) }}</div>
+      <div class="stat-sub">Total analysed</div>
+    </div>
+  </div>
+
+  <!-- ── Devices Table ── -->
+  <div class="section-header">
+    <h2>📡 Connected Devices</h2>
+    <span class="badge">{{ devices | length }} devices</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>IP Address</th>
+          <th>MAC Address</th>
+          <th>Hostname</th>
+          <th>Vendor</th>
+          <th>Status</th>
+          <th>Last Seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in devices %}
+        <tr>
+          <td style="color:#484f58">{{ loop.index }}</td>
+          <td><span class="mono">{{ d.ip_address }}</span></td>
+          <td><span class="mono" style="color:#8b949e">{{ d.mac_address or '—' }}</span></td>
+          <td>{{ d.hostname or '—' }}</td>
+          <td>
+            <span class="pill {% if d.vendor != 'Unknown' %}pill-blue{% else %}pill-gray{% endif %}">
+              {{ d.vendor or 'Unknown' }}
+            </span>
+          </td>
+          <td>
+            <span class="pill {% if d.status == 'active' %}pill-green{% else %}pill-gray{% endif %}">
+              {{ d.status }}
+            </span>
+          </td>
+          <td style="color:#8b949e;font-size:0.78rem">{{ d.last_seen }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty">No devices found. Click "Scan Now" to discover devices.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Traffic + Alerts ── -->
+  <div class="two-col">
+
+    <!-- Traffic -->
+    <div>
+      <div class="section-header">
+        <h2>📊 Traffic Summary</h2>
+        <span class="badge">per device</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>IP Address</th>
+              <th>Packets</th>
+              <th>Protocol</th>
+              <th>Activity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set max_pkts = traffic | map(attribute='total_packets') | max if traffic else 1 %}
+            {% for t in traffic %}
+            <tr>
+              <td><span class="mono">{{ t.ip_address }}</span></td>
+              <td>{{ "{:,}".format(t.total_packets) }}</td>
+              <td>
+                <span class="pill {% if t.protocol == 'HTTPS' %}pill-green{% elif t.protocol == 'DNS' %}pill-blue{% else %}pill-gray{% endif %}">
+                  {{ t.protocol or '—' }}
+                </span>
+              </td>
+              <td style="width:80px">
+                <div class="bar-bg">
+                  <div class="bar-fill" style="width:{{ [(t.total_packets / max_pkts * 100)|int, 100] | min }}%"></div>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="empty">No traffic data yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div>
+      <div class="section-header">
+        <h2>🚨 Security Alerts</h2>
+        <span class="badge">recent 10</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Severity</th>
+              <th>Type</th>
+              <th>Source IP</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in alerts %}
+            <tr class="alert-row-{{ a.severity | lower }}">
+              <td>
+                <span class="pill {% if a.severity == 'Critical' %}pill-red{% elif a.severity == 'High' %}pill-orange{% elif a.severity == 'Medium' %}pill-orange{% else %}pill-blue{% endif %}">
+                  {{ a.severity }}
+                </span>
+              </td>
+              <td style="font-size:0.78rem">{{ a.alert_type }}</td>
+              <td><span class="mono">{{ a.source_ip or '—' }}</span></td>
+              <td style="font-size:0.75rem;color:#8b949e;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                  title="{{ a.description }}">
+                {{ a.description }}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="empty">✅ No active alerts</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- end two-col -->
+
+</main>
+
+<footer>
+  SoftNet-Guard &nbsp;|&nbsp; Velalar College of Engineering and Technology &nbsp;|&nbsp;
+  Department of IT &nbsp;|&nbsp; 2026
+</footer>
+
+<script>
+  // Auto-refresh stats every 15 seconds
+  setInterval(() => {
+    fetch('/api/stats').then(r => r.json()).then(data => {
+      document.querySelector('.stat-card.blue   .stat-value').textContent = data.total_devices;
+      document.querySelector('.stat-card.green  .stat-value').textContent = data.active_devices;
+      document.querySelector('.stat-card.red    .stat-value').textContent = data.open_alerts;
+      document.querySelector('.stat-card.orange .stat-value').textContent = data.total_packets.toLocaleString();
+    });
+  }, 15000);
+
+  // Trigger a network scan
+  function triggerScan() {
+    const btn = document.querySelector('.scan-btn');
+    btn.textContent = '⏳ Scanning...';
+    btn.disabled = true;
+    fetch('/api/scan', {method: 'POST'})
+      .then(r => r.json())
+      .then(data => {
+        alert(`Scan complete! Found ${data.scanned} device(s).\nRefreshing page...`);
+        location.reload();
+      })
+      .catch(() => { alert('Scan failed.'); })
+      .finally(() => { btn.textContent = '🔍 Scan Now'; btn.disabled = false; });
+  }
+</script>
+</body>
+</html>
